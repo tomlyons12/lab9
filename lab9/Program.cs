@@ -42,8 +42,26 @@ public class Abonent : IAbonent
     {
         return (liczbaPolaczen, kosztRozmow);
     }
- 
+
 }
+
+class Polaczenie
+{
+    double czasTrwania;
+    decimal oplata;
+    bool wykonanie;
+
+    Polaczenie(double czasTrwania, decimal oplata, bool wykonanie)
+    {
+        this.czasTrwania = czasTrwania;
+        this.oplata = oplata;
+        this.wykonanie = wykonanie;
+    }
+}
+
+
+
+
 
 class Program
 {
