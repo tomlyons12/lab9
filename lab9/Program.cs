@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 
 public enum EnumTaryfa { taryfa1 = 1, taryfa2 = 2, taryfa3 = 4 };
@@ -13,68 +13,164 @@ public interface IAbonent
 
 public class Abonent : IAbonent
 {
-    string imie;
-    string numerTel;
-    int liczbaPolaczen;
-    decimal kosztRozmow;
+    public string imie;
+    public string nazwisko;
+    public string numerTelefonu;
+    private List<Polaczenie> polaczenia;
 
-    public Abonent(string imie, string numerTel, int liczbaPolaczen, decimal kosztRozmow)
+    public Abonent(string imie, string nazwisko, string numerTelefonu)
     {
         this.imie = imie;
-        this.numerTel = numerTel;
-        this.liczbaPolaczen = 0;
-        this.kosztRozmow = 0.0m;
+        this.nazwisko = nazwisko;
+        this.numerTelefonu = numerTelefonu;
+        this.polaczenia = new List<Polaczenie>();
     }
 
     public string PodajDane()
     {
-        return $"Imie: {imie}, numer telefonu: {numerTel}";
+        return $"{imie} {nazwisko} {{{numerTelefonu}}}";
     }
 
     public void Zadzwon(double czas, EnumTaryfa taryfa)
     {
-        liczbaPolaczen++;
-        decimal rozmowacena = (decimal)czas * (decimal)taryfa;
-        kosztRozmow += rozmowacena;
+        double losowaLiczba = new Random().NextDouble();
+
+        if (losowaLiczba < 0.3)
+        {
+            polaczenia.Add(new Polaczenie(0, 0, false));
+        }
+        else
+        {
+            decimal oplata = (decimal)czas * (decimal)taryfa;
+            polaczenia.Add(new Polaczenie(czas, oplata, true));
+        }
     }
 
     public (int, decimal) PodsumowanieRozmow()
     {
-        return (liczbaPolaczen, kosztRozmow);
+        int udanePolaczenia = 0;
+        decimal sumaOplat = 0;
+
+        foreach (var polaczenie in polaczenia)
+        {
+            if (polaczenie.Wykonane)
+            {
+                udanePolaczenia++;
+                sumaOplat += polaczenie.Oplata;
+            }
+        }
+
+        return (udanePolaczenia, sumaOplat);
     }
 
+    public override string ToString()
+    {
+        var podsumowanie = PodsumowanieRozmow();
+        return $"{PodajDane()}, [liczba rozmów: {podsumowanie.Item1}, opłata: {podsumowanie.Item2:F2} zł]";
+    }
 }
 
 class Polaczenie
 {
-    double czasTrwania;
-    decimal oplata;
-    bool wykonanie;
+    public double CzasTrwania { get; set; }
+    public decimal Oplata { get; set; }
+    public bool Wykonane { get; set; }
 
-    Polaczenie(double czasTrwania, decimal oplata, bool wykonanie)
+    public Polaczenie(double czasTrwania, decimal oplata, bool wykonane)
     {
-        this.czasTrwania = czasTrwania;
-        this.oplata = oplata;
-        this.wykonanie = wykonanie;
+        CzasTrwania = czasTrwania;
+        Oplata = oplata;
+        Wykonane = wykonane;
     }
 }
 
+class Operatorsieci
+{
+    string nazwa;
+    Dictionary<string, Abonent> abonenci;
 
+    public Operatorsieci(string nazwa)
+    {
+        this.nazwa = nazwa;
+        this.abonenci = new Dictionary<string, Abonent>();
+    }
 
+    public void DodajAbonenta(Abonent abonent)
+    {
+        if (!abonenci.ContainsKey(abonent.numerTelefonu))
+        {
+            abonenci.Add(abonent.numerTelefonu, abonent);
+        }
+        else
+        {
+            Console.WriteLine($"Abonent o numerze {abonent.numerTelefonu} już istnieje w operatorze {nazwa}.");
+        }
+    }
 
+    public Abonent WyszukajAbonenta(string numerTelefonu)
+    {
+        if (abonenci.ContainsKey(numerTelefonu))
+        {
+            return abonenci[numerTelefonu];
+        }
+        else
+        {
+            Console.WriteLine($"Nie znaleziono abonenta o numerze {numerTelefonu} w operatorze {nazwa}.");
+            return null;
+        }
+    }
+
+    public override string ToString()
+    {
+        decimal sumarycznyZysk = 0;
+
+        Console.WriteLine($"Operator: {nazwa} [sumaryczny zysk: {sumarycznyZysk:F2}zł]");
+
+        foreach (var abonent in abonenci.Values)
+        {
+            var podsumowanie = abonent.PodsumowanieRozmow();
+            Console.WriteLine($"{abonent.PodajDane()}, [liczba rozmów: {podsumowanie.Item1}, opłata: {podsumowanie.Item2:F2}zł]");
+            sumarycznyZysk += podsumowanie.Item2;
+        }
+
+        return $"Operator: {nazwa} [sumaryczny zysk: {sumarycznyZysk:F2}zł]";
+    }
+
+}
 
 class Program
 {
 
     static void Main()
     {
-        IAbonent abonent = new Abonent("Jan Kowalski", "123456", 0, 0.0m);
-        abonent.Zadzwon(10.5, EnumTaryfa.taryfa1);
-        abonent.Zadzwon(5.0, EnumTaryfa.taryfa2);
+        Operatorsieci operatorSieci = new Operatorsieci("IDEA");
 
-        Console.WriteLine(abonent.PodajDane());
-        var podsumowanie = abonent.PodsumowanieRozmow();
-        Console.WriteLine($"Liczba polaczen {podsumowanie.Item1}, koszt rozmow: {podsumowanie.Item2}");
+        Abonent abonent1 = new Abonent("Jan", "Kowalski", "777-034-232");
+        abonent1.Zadzwon(10.5, EnumTaryfa.taryfa1);
+        abonent1.Zadzwon(5.0, EnumTaryfa.taryfa2);
+        abonent1.Zadzwon(7.0, EnumTaryfa.taryfa3);
+
+        Abonent abonent2 = new Abonent("Edyta", "Nowak", "666-634-009");
+        abonent2.Zadzwon(7.0, EnumTaryfa.taryfa1);
+        abonent2.Zadzwon(8.5, EnumTaryfa.taryfa2);
+        abonent2.Zadzwon(5.0, EnumTaryfa.taryfa3);
+
+        Abonent abonent3 = new Abonent("Marian", "Waligóra", "744-934-229");
+
+        operatorSieci.DodajAbonenta(abonent1);
+        operatorSieci.DodajAbonenta(abonent2);
+        operatorSieci.DodajAbonenta(abonent3);
+
+        Console.WriteLine(operatorSieci.ToString());
+
+        // Przykład wyszukiwania abonenta
+        string numerTelefonuDoWyszukania = "777-034-232";
+        Abonent znalezionyAbonent = operatorSieci.WyszukajAbonenta(numerTelefonuDoWyszukania);
+
+        if (znalezionyAbonent != null)
+        {
+            Console.WriteLine($"Znaleziono abonenta o numerze telefonu {numerTelefonuDoWyszukania}: {znalezionyAbonent.PodajDane()}");
+        }
     }
 }
 
